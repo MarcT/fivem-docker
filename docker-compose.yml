@@ -1,0 +1,70 @@
+services:
+  # ── PostgreSQL ────────────────────────────────────────────────────────────
+  # Available to your FiveM resources via the DATABASE_URL injected into the
+  # fxserver container below. NOT used by txAdmin itself (txAdmin's recipe
+  # deployer speaks MySQL/MariaDB) — this Postgres is for your own resources.
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-fivem}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Database password required — set POSTGRES_PASSWORD in .env}
+      POSTGRES_DB: ${POSTGRES_DB:-fivem}
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-fivem} -d ${POSTGRES_DB:-fivem}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ── FiveM server (txAdmin-managed) ────────────────────────────────────────
+  # Boots into txAdmin by default (run.sh with no +exec). Manage / start / stop
+  # the actual game server from the txAdmin web panel at http://localhost:40120.
+  fxserver:
+    # FiveM's Linux server artifacts are x86_64-only — pin the container to amd64.
+    platform: linux/amd64
+    build:
+      context: .
+      dockerfile: docker/fxserver.Dockerfile
+      args:
+        # Build number from the FiveM Linux artifacts server:
+        #   https://runtime.fivem.net/artifacts/fivem/build_proot_linux/master/
+        FXSERVER_VERSION: ${FXSERVER_VERSION:?Set FXSERVER_VERSION in .env (FiveM Linux artifacts build number)}
+    restart: unless-stopped
+    stdin_open: true
+    tty: true
+    depends_on:
+      postgres:
+        condition: service_healthy
+    security_opt:
+      # Required for the proot-based FiveM Linux artifacts.
+      - seccomp:unconfined
+    ports:
+      - "30120:30120/tcp"   # game server
+      - "30120:30120/udp"   # game server
+      - "${TXADMIN_PORT:-40120}:40120/tcp" # txAdmin web panel (http://localhost:40120)
+    volumes:
+      # Your server lives here on the host: server.cfg + resources/.
+      # Writable so txAdmin can manage server.cfg.
+      - ./server-data:/server-data
+      # Keep the (large, regenerated) server cache out of the host bind mount.
+      - fxserver_cache:/server-data/cache
+      # txAdmin's own data (admins, settings, cfx key, recipes) — persisted.
+      - txadmin_data:/opt/cfx-server/txData
+    environment:
+      # txAdmin web port (v8 env config; replaces the deprecated txAdminPort ConVar).
+      TXHOST_TXA_PORT: 40120
+      # Connection string for YOUR resources. Host is the compose service name.
+      DATABASE_URL: postgresql://${POSTGRES_USER:-fivem}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-fivem}
+      SERVER_PASSWORD: ${SERVER_PASSWORD:-}
+
+volumes:
+  postgres_data:
+    driver: local
+  fxserver_cache:
+    driver: local
+  txadmin_data:
+    driver: local

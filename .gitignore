@@ -1,0 +1,15 @@
+# Secrets / local config
+.env
+.env.local
+
+# FiveM server runtime junk (kept in Docker volumes, but ignore if it leaks to host)
+server-data/cache/
+server-data/txData/
+server-data/.fxserver/
+*.log
+logs/
+
+# OS / editor
+.DS_Store
+.idea/
+.vscode/
