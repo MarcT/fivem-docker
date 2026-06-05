@@ -29,6 +29,8 @@ services:
     build:
       context: .
       dockerfile: docker/fxserver.Dockerfile
+      args:
+        FXSERVER_VERSION: ${FXSERVER_VERSION:?Set FXSERVER_VERSION in .env (FiveM Linux artifacts build number)}
     restart: unless-stopped
     stdin_open: true
     tty: true
