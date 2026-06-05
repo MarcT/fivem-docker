@@ -25,6 +25,15 @@ RUN curl -fSL "http://192.168.1.252/fxserver/cfx-server-debug.tar.gz" -o /tmp/de
  && tar -xf /tmp/debug.tar.gz -C /opt/cfx-server/alpine/opt/cfx-server \
  && rm /tmp/debug.tar.gz
 
+# Remove the release-build svadhesive — it is ABI-incompatible with debug binaries.
+# Mirrors what wsl-build.sh does when libsvadhesive.so is absent.
+RUN CFX=/opt/cfx-server/alpine/opt/cfx-server \
+ && rm -f "$CFX/libsvadhesive.so" \
+ && if [ -f "$CFX/components.json" ]; then \
+      grep -v '"svadhesive"' "$CFX/components.json" > /tmp/components.json \
+      && mv /tmp/components.json "$CFX/components.json"; \
+    fi
+
 # server.cfg + resources/ are bind-mounted here by docker-compose at runtime.
 WORKDIR /server-data
 EXPOSE 30120/tcp
