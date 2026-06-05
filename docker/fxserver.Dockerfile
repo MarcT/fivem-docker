@@ -1,24 +1,15 @@
-# FiveM server image.
-# Set FXSERVER_VERSION to a build number from the FiveM Linux artifacts server:
-#   https://runtime.fivem.net/artifacts/fivem/build_proot_linux/master/
+# FiveM server image — custom build.
 FROM debian:bookworm-slim
 
-ARG FXSERVER_VERSION
-RUN test -n "$FXSERVER_VERSION" || { \
-      echo "ERROR: FXSERVER_VERSION build-arg is required (FiveM Linux artifacts build number)."; \
-      echo "See https://runtime.fivem.net/artifacts/fivem/build_proot_linux/master/"; \
-      exit 1; \
-    }
-
 RUN apt-get update \
- && apt-get install -y --no-install-recommends ca-certificates curl xz-utils \
+ && apt-get install -y --no-install-recommends ca-certificates curl \
  && rm -rf /var/lib/apt/lists/*
 
-# Download + extract the artifacts into /opt/cfx-server.
+# Download + extract the custom server artifacts into /opt/cfx-server.
 WORKDIR /opt/cfx-server
-RUN curl -fSL "https://runtime.fivem.net/artifacts/fivem/build_proot_linux/master/${FXSERVER_VERSION}/fx.tar.xz" -o /tmp/fx.tar.xz \
- && tar -xJf /tmp/fx.tar.xz -C /opt/cfx-server \
- && rm /tmp/fx.tar.xz
+RUN curl -fSL "http://192.168.1.252/fxserver/cfx-server-debug.tar.gz" -o /tmp/fx.tar.gz \
+ && tar -xzf /tmp/fx.tar.gz -C /opt/cfx-server \
+ && rm /tmp/fx.tar.gz
 
 # server.cfg + resources/ are bind-mounted here by docker-compose at runtime.
 WORKDIR /server-data
