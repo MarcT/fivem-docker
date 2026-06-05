@@ -29,22 +29,7 @@ RUN curl -fSL "http://192.168.1.252/fxserver/cfx-server-debug.tar.gz" -o /tmp/de
 # Mirrors what wsl-build.sh does when libsvadhesive.so is absent.
 RUN CFX=/opt/cfx-server/alpine/opt/cfx-server \
  && rm -f "$CFX/libsvadhesive.so" "$CFX/libsvadhesive.json" \
- && python3 -c "
-import json, sys
-path = '$CFX/components.json'
-with open(path) as f:
-    data = json.load(f)
-def drop(v):
-    if isinstance(v, list):
-        return [x for x in v if 'svadhesive' not in str(x)]
-    return v
-if isinstance(data, list):
-    data = drop(data)
-elif isinstance(data, dict):
-    data = {k: drop(v) for k, v in data.items()}
-with open(path, 'w') as f:
-    json.dump(data, f, indent=2)
-"
+ && python3 -c "import json; p='/opt/cfx-server/alpine/opt/cfx-server/components.json'; d=json.load(open(p)); drop=lambda v:[x for x in v if 'svadhesive' not in str(x)] if isinstance(v,list) else v; d={k:drop(v) for k,v in d.items()} if isinstance(d,dict) else drop(d); json.dump(d,open(p,'w'),indent=2)"
 
 # server.cfg + resources/ are bind-mounted here by docker-compose at runtime.
 WORKDIR /server-data
