@@ -8,7 +8,7 @@ RUN apt-get update \
 # Download + extract the custom server artifacts into /opt/cfx-server.
 WORKDIR /opt/cfx-server
 RUN curl -fSL "http://192.168.1.252/fxserver/cfx-server-debug.tar.gz" -o /tmp/fx.tar.gz \
- && tar -xzf /tmp/fx.tar.gz -C /opt/cfx-server \
+ && tar -xf /tmp/fx.tar.gz -C /opt/cfx-server \
  && rm /tmp/fx.tar.gz
 
 # server.cfg + resources/ are bind-mounted here by docker-compose at runtime.
