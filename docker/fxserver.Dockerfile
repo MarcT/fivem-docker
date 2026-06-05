@@ -11,7 +11,7 @@ RUN test -n "$FXSERVER_VERSION" || { \
     }
 
 RUN apt-get update \
- && apt-get install -y --no-install-recommends ca-certificates curl xz-utils \
+ && apt-get install -y --no-install-recommends ca-certificates curl xz-utils python3 \
  && rm -rf /var/lib/apt/lists/*
 
 # Download official release for the full Alpine proot structure (musl, V8, mono, run.sh).
@@ -28,11 +28,23 @@ RUN curl -fSL "http://192.168.1.252/fxserver/cfx-server-debug.tar.gz" -o /tmp/de
 # Remove the release-build svadhesive — it is ABI-incompatible with debug binaries.
 # Mirrors what wsl-build.sh does when libsvadhesive.so is absent.
 RUN CFX=/opt/cfx-server/alpine/opt/cfx-server \
- && rm -f "$CFX/libsvadhesive.so" \
- && if [ -f "$CFX/components.json" ]; then \
-      grep -v '"svadhesive"' "$CFX/components.json" > /tmp/components.json \
-      && mv /tmp/components.json "$CFX/components.json"; \
-    fi
+ && rm -f "$CFX/libsvadhesive.so" "$CFX/libsvadhesive.json" \
+ && python3 -c "
+import json, sys
+path = '$CFX/components.json'
+with open(path) as f:
+    data = json.load(f)
+def drop(v):
+    if isinstance(v, list):
+        return [x for x in v if 'svadhesive' not in str(x)]
+    return v
+if isinstance(data, list):
+    data = drop(data)
+elif isinstance(data, dict):
+    data = {k: drop(v) for k, v in data.items()}
+with open(path, 'w') as f:
+    json.dump(data, f, indent=2)
+"
 
 # server.cfg + resources/ are bind-mounted here by docker-compose at runtime.
 WORKDIR /server-data
