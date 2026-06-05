@@ -13,5 +13,3 @@ logs/
 .DS_Store
 .idea/
 .vscode/
-
-graphify-out/
